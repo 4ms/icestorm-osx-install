@@ -1,0 +1,8 @@
+Notes on how to install icestorm on OSX 10.15
+
+Probably some dependencies already installed in a (typical) dev environment.
+
+See http://www.clifford.at/icestorm/
+
+Installs IceStorm Tools, Arachne-PNR, NextPNR, Yosys
+
