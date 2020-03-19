@@ -1,24 +1,7 @@
-################################################################################
+## Makefile by Dan Green
 ##
-## Filename: 	Makefile
-##
-## Project:	Verilog Tutorial Example file
-##
-## Purpose:	Builds the thruwire Verilator simulationo
-##
-## Targets:
-##
-##	The (default) or all target will build the thruwire verilator
-##	simulation.
-##
-##	clean	Removes all build products
-##
-## Creator:	Dan Gisselquist, Ph.D.
+## Based on Makefile by Dan Gisselquist, Ph.D.
 ##		Gisselquist Technology, LLC
-##
-################################################################################
-##
-## Written and distributed by Gisselquist Technology, LLC
 ##
 ## This program is hereby granted to the public domain.
 ##
@@ -28,7 +11,7 @@
 ##
 ################################################################################
 ##
-##
+
 PROJ = thruwire
 PIN_DEF = hx8kboard.pcf
 DEVICE = hx8k
@@ -38,29 +21,30 @@ SIM_OBJ_DIR = obj_dir
 SIM_DRIVER_SRC = $(PROJ).cpp
 SIM_DRIVER_EXC = $(SIM_OBJ_DIR)/$(PROJ)-sim
 VSIM = $(SIM_OBJ_DIR)/V$(PROJ)
-# VSIM_ALL_A
-# VPROJ.mk
+VSIM_MK = V$(PROJ).mk
+VSIM_A = $(VSIM)__ALL.a
 
 BINDIR = build
 BLIF = $(BINDIR)/$(PROJ).blif
 ASC = $(BINDIR)/$(PROJ).asc
 BIN = $(BINDIR)/$(PROJ).bin
 
+.PHONY: all
 all: $(SIM_DRIVER_EXC)
 sim: $(SIM_DRIVER_EXC)
 
 $(VSIM).cpp: $(PROJ).v
 	verilator -Wall -cc $(PROJ).v
 
-$(VSIM)__ALL.a: $(VSIM).cpp
-	make -C obj_dir -f V$(PROJ).mk
+$(VSIM_A): $(VSIM).cpp
+	make -C $(SIM_OBJ_DIR) -f $(VSIM_MK)
 
 # Build a simulation
-$(SIM_DRIVER_EXC): $(SIM_DRIVER_SRC) $(VSIM)__ALL.a
+$(SIM_DRIVER_EXC): $(SIM_DRIVER_SRC) $(VSIM_A)
 	@echo "Building a Verilator-based simulation of "$(SIM_DRIVER_EXC)
 	g++ -I/usr/local/share/verilator/include  -I $(SIM_OBJ_DIR)     \
 		/usr/local/share/verilator/include/verilated.cpp \
-		$(SIM_DRIVER_SRC) $(VSIM)__ALL.a      \
+		$(SIM_DRIVER_SRC) $(VSIM_A)      \
 		-o $(SIM_DRIVER_EXC)
 
 # yosys: thruwire.json
