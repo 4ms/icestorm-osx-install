@@ -33,54 +33,58 @@ PROJ = thruwire
 PIN_DEF = hx8kboard.pcf
 DEVICE = hx8k
 
-OBJDIR = obj_dir
-VPROJ = $(OBJDIR)/V$(PROJ)
+SIM_OBJ_DIR = obj_dir
 
-.PHONY: all
-all: $(PROJ)
+SIM_DRIVER_SRC = $(PROJ).cpp
+SIM_DRIVER_EXC = $(SIM_OBJ_DIR)/$(PROJ)-sim
+VSIM = $(SIM_OBJ_DIR)/V$(PROJ)
+# VSIM_ALL_A
+# VPROJ.mk
 
-$(VPROJ).cpp: $(PROJ).v
+BINDIR = build
+BLIF = $(BINDIR)/$(PROJ).blif
+ASC = $(BINDIR)/$(PROJ).asc
+BIN = $(BINDIR)/$(PROJ).bin
+
+all: $(SIM_DRIVER_EXC)
+sim: $(SIM_DRIVER_EXC)
+
+$(VSIM).cpp: $(PROJ).v
 	verilator -Wall -cc $(PROJ).v
 
-$(VPROJ)__ALL.a: $(VPROJ).cpp
+$(VSIM)__ALL.a: $(VSIM).cpp
 	make -C obj_dir -f V$(PROJ).mk
 
 # Build a simulation
-$(PROJ): $(PROJ).cpp $(VPROJ)__ALL.a
-	@echo "Building a Verilator-based simulation of "$(PROJ)
-	g++ -I/usr/local/share/verilator/include  -I $(OBJDIR)     \
+$(SIM_DRIVER_EXC): $(SIM_DRIVER_SRC) $(VSIM)__ALL.a
+	@echo "Building a Verilator-based simulation of "$(SIM_DRIVER_EXC)
+	g++ -I/usr/local/share/verilator/include  -I $(SIM_OBJ_DIR)     \
 		/usr/local/share/verilator/include/verilated.cpp \
-		$(PROJ).cpp $(VPROJ)__ALL.a      \
-		-o $(PROJ)
+		$(SIM_DRIVER_SRC) $(VSIM)__ALL.a      \
+		-o $(SIM_DRIVER_EXC)
 
-%.blif: %.v
-	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $<
-
-%.asc: $(PIN_DEF) %.blif
-	arachne-pnr -d $(subst hx,,$(subst lp,,$(DEVICE))) -o $@ -p $^
-
-
-# .PHONY: yosys nextpnr icepack
 # yosys: thruwire.json
 # thruwire.json:	thruwire.v
 # 	yosys -p 'synth_ice40 -json thruwire.json' thruwire.v
-
-#
-# This is the appropriate build script for an ICO board
-# Your build script will vary depending upon your board
-#
 
 # nextpnr: thruwire.asc
 # thruwire.asc: thruwire.json hx8kboard.pcf
 # 	nextpnr-ice40 --hx8k --package ct256 --pcf demo.pcf --json thruwire.json
 
-icepack: $(PROJ).bin
-$(PROJ).bin: $(PROJ).asc
-	icepack $(PROJ).asc $(PROJ).bin
+$(BLIF): $(PROJ).v
+	mkdir -p $(BINDIR)
+	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $<
+
+$(ASC): $(PIN_DEF) $(BLIF)
+	arachne-pnr -d $(subst hx,,$(subst lp,,$(DEVICE))) -o $@ -p $^
+
+
+bin: $(BIN)
+icepack: $(BIN)
+$(BIN): $(ASC)
+	icepack $(ASC) $(BIN)
 	
 .PHONY: clean
 clean:
-	rm -rf obj_dir/ $(PROJ)
-
-
+	rm -rf $(SIM_OBJ_DIR)/ $(BINDIR)/
 
