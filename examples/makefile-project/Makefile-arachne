@@ -48,14 +48,14 @@ $(SIM_DRIVER_EXC): $(SIM_DRIVER_SRC) $(VSIM_A)
 		$(SIM_DRIVER_SRC) $(VSIM_A)      \
 		-o $(SIM_DRIVER_EXC)
 
-yosys: $(JSON)
-$(JSON):	$(PROJ).v
-	yosys -p 'synth_ice40 -json $(JSON)' $(PROJ).v
+$(BLIF): $(PROJ).v
+	mkdir -p $(BINDIR)
+	yosys -p 'synth_ice40 -top $(PROJ) -blif $@' $<
 
-nextpnr: $(ASC)
-$(ASC): $(JSON) $(PIN_DEF)
-	nextpnr-ice40 --$(DEVICE) --package $(PACKAGE) --pcf $(PIN_DEF) --json $(JSON)
+$(ASC): $(PIN_DEF) $(BLIF)
+	arachne-pnr -d $(subst hx,,$(subst lp,,$(DEVICE))) -o $@ -p $^
 
+.PHONY: bin
 bin: $(BIN)
 icepack: $(BIN)
 $(BIN): $(ASC)
